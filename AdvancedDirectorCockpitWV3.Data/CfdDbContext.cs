@@ -1,11 +1,11 @@
-using AdvancedDirectorCockpitWV3.Data.Entities;
+﻿using AdvancedDirectorCockpitWV3.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
 
 namespace AdvancedDirectorCockpitWV3.Data;
 
-// Mirrors the existing CFD schema (five tables) exactly; InitialCreate migration = that schema.
+// InitialCreate = the existing CFD schema (five tables). AddBoard (2026-11-02) = the cockpit board tables (Board*).
 public class CfdDbContext : DbContext
 {
     public CfdDbContext(DbContextOptions<CfdDbContext> options) : base(options) { }
@@ -15,6 +15,12 @@ public class CfdDbContext : DbContext
     public DbSet<ConfigKey> ConfigKey => Set<ConfigKey>();
     public DbSet<Loan> Loan => Set<Loan>();
     public DbSet<Connection> Connection => Set<Connection>();
+    public DbSet<BoardCard> BoardCard => Set<BoardCard>();
+    public DbSet<BoardGroup> BoardGroup => Set<BoardGroup>();
+    public DbSet<BoardTab> BoardTab => Set<BoardTab>();
+    public DbSet<BoardStageLayout> BoardStageLayout => Set<BoardStageLayout>();
+    public DbSet<BoardSetting> BoardSetting => Set<BoardSetting>();
+    public DbSet<BoardIcon> BoardIcon => Set<BoardIcon>();
 
     public static CfdDbContext Create(string connectionString)
     {
@@ -42,6 +48,21 @@ public class CfdDbContext : DbContext
             e.Property(x => x.Server).HasMaxLength(200); e.Property(x => x.Database).HasMaxLength(128); e.Property(x => x.AuthMode).HasMaxLength(20);
             e.Property(x => x.Username).HasMaxLength(128); e.Property(x => x.SecretLocation).HasMaxLength(400); e.Property(x => x.Notes).HasMaxLength(400);
             e.Property(x => x.UpdatedAt).HasDefaultValueSql(now); });
+        b.Entity<BoardCard>(e => { e.ToTable("BoardCard", "dbo"); e.HasKey(x => x.Id); e.Property(x => x.Id).HasMaxLength(200);
+            e.Property(x => x.GroupId).HasMaxLength(200); e.Property(x => x.Name).HasMaxLength(400); e.Property(x => x.App).HasMaxLength(400);
+            e.Property(x => x.Url).HasMaxLength(2000); e.Property(x => x.Json).HasColumnType("nvarchar(max)"); e.Property(x => x.UpdatedAt).HasDefaultValueSql(now);
+            e.HasIndex(x => x.GroupId); });
+        b.Entity<BoardGroup>(e => { e.ToTable("BoardGroup", "dbo"); e.HasKey(x => x.Id); e.Property(x => x.Id).HasMaxLength(200);
+            e.Property(x => x.ParentId).HasMaxLength(200); e.Property(x => x.Title).HasMaxLength(400); e.Property(x => x.Json).HasColumnType("nvarchar(max)");
+            e.Property(x => x.UpdatedAt).HasDefaultValueSql(now); });
+        b.Entity<BoardTab>(e => { e.ToTable("BoardTab", "dbo"); e.HasKey(x => x.Id); e.Property(x => x.Id).HasMaxLength(200);
+            e.Property(x => x.Label).HasMaxLength(400); e.Property(x => x.Json).HasColumnType("nvarchar(max)"); e.Property(x => x.UpdatedAt).HasDefaultValueSql(now); });
+        b.Entity<BoardStageLayout>(e => { e.ToTable("BoardStageLayout", "dbo"); e.HasKey(x => x.Id); e.Property(x => x.Id).HasMaxLength(200);
+            e.Property(x => x.Json).HasColumnType("nvarchar(max)"); e.Property(x => x.UpdatedAt).HasDefaultValueSql(now); });
+        b.Entity<BoardSetting>(e => { e.ToTable("BoardSetting", "dbo"); e.HasKey(x => x.Key); e.Property(x => x.Key).HasMaxLength(200);
+            e.Property(x => x.ValueJson).HasColumnType("nvarchar(max)"); e.Property(x => x.UpdatedAt).HasDefaultValueSql(now); });
+        b.Entity<BoardIcon>(e => { e.ToTable("BoardIcon", "dbo"); e.HasKey(x => x.Name); e.Property(x => x.Name).HasMaxLength(200);
+            e.Property(x => x.Content).HasColumnType("varbinary(max)"); e.Property(x => x.UpdatedAt).HasDefaultValueSql(now); });
     }
 }
 

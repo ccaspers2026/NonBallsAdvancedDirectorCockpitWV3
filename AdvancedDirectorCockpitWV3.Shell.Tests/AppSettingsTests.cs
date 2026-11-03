@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using AdvancedDirectorCockpitWV3.Data;
 using AdvancedDirectorCockpitWV3.Services;
 using Microsoft.Extensions.Configuration;
@@ -31,20 +31,18 @@ public class AppSettingsTests
         var c = sp.GetRequiredService<IOptions<CockpitOptions>>().Value;
         Assert.Equal("adc-wv2.local", c.VirtualHost);
         Assert.Equal(16, c.MaxSlots);
-        Assert.EndsWith(@"Advanced Director Cockpit WV3\data", c.DataDir);
         Assert.EndsWith("AdvancedDirectorCockpitWV3.exe", c.PubExePath);
         var v = sp.GetRequiredService<IOptions<VaultOptions>>().Value;
-        Assert.Equal("http://127.0.0.1:8791", v.ProxyBaseUrl);
-        Assert.Equal(20, v.TimeoutSeconds);
+        Assert.Equal("", v.StoreDir);
         Assert.Equal(16384, v.MaxBodyBytes);
         Assert.NotNull(sp.GetRequiredService<CfdStartupService>());
     }
 
-    [Fact] public void Missing_DataDir_fails_validation()
+    [Fact] public void Base_appsettings_alone_fails_validation_without_ConnectionStrings_Cfd()
     {
         var cfg = new ConfigurationBuilder().SetBasePath(CfdDbContextFactory.FindShellDir()).AddJsonFile("appsettings.json").Build();
         using var sp = Build(cfg);
-        Assert.Throws<OptionsValidationException>(() => sp.GetRequiredService<IOptions<CockpitOptions>>().Value);
+        Assert.Throws<OptionsValidationException>(() => sp.GetRequiredService<IOptions<CfdOptions>>().Value);
     }
 
     [Fact] public void Shell_output_contains_appsettings_files()

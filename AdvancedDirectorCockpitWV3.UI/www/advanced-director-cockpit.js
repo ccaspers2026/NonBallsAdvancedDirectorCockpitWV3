@@ -2440,7 +2440,7 @@
 (function bootAdvancedDirectorCockpit(){
   var OVERLAY_KEY = "adc-page-data";
   var editing = false;
-  var LOAD_NOTE = "Couldn't load the page data from www\\data. Check that cards.json, groups.json, tabs.json, and stages.json are valid JSON, then restart the app.";
+  var LOAD_NOTE = "Couldn't load the board from the CFD database (cards, groups, tabs, stages). Check that the database is reachable, then restart the app.";
 
   /* Reads one JSON file. Rejects when the server or file:// blocks it. */
   function fetchJson(name){
@@ -2682,7 +2682,7 @@
     window.addEventListener("focus", function(){ livePoll(); });
   }
 
-  /* Writes cards, groups, tabs, and stages to the JSON files. Does not write adc-page-data. */
+  /* Writes cards, groups, tabs, and stages to the board in the CFD database (host POST /adc-data). Does not write adc-page-data. */
   function adcFileSaveFailed(){
     var lp = window.__ADC && window.__ADC.lp;
     if(lp && typeof lp.toast === "function"){
@@ -4371,7 +4371,7 @@
         if(result === "failed"){
           setBusy(false);
           setStatus("err", "Not saved");
-          setBanner("err", "Not saved: the cockpit could not write cards.json (the save request failed). Your edits are still in the form. Press Save to try again.");
+          setBanner("err", "Not saved: the cockpit could not save the board to the database (the save request failed). Your edits are still in the form. Press Save to try again.");
           return;
         }
         start = snapshot();

@@ -1,29 +1,23 @@
-# Advanced Director Cockpit WV2
+# Advanced Director Cockpit WV3
 
-This is a full shell over a copy of the Advanced Director Cockpit. It is not a replacement for the original app, and it does not edit that folder.
+Self-contained WPF + WebView2 cockpit (.NET 10). No Python, no local proxy ports, no data folder:
 
-The original page (HTML, CSS, JS, and the data JSON) is copied into `www` in this project. The window loads that copy. The tray, groups, cards, and tabs are the cockpit UI. Dropping or opening a card does not send the address through the frame proxy. The copied page tells this shell the card name and the real url, and a WebView2 pane opens that url.
+- Board (cards, groups, tabs, stages, card icons) lives in SQL Server LocalDB, CFD database, `Board*` tables.
+- Vault (`/adc-vault/*`) runs in-process (`AdvancedDirectorCockpitWV3\Vault\AdcVault.cs`). Store: `%LOCALAPPDATA%\AdvancedDirectorCockpitWV3\vault` unless `Vault:StoreDir` is set.
+- Page (HTML/JS/CSS/assets) is the `AdvancedDirectorCockpitWV3.UI\www` project, copied to the Shell output.
 
-Page data lives here:
+## Clone and run (another developer)
 
-`V:\_Data\CaspersCreations\Applications\Source\NonBalls\Advanced Director Cockpit WV2\www\data`
+Prerequisites: Windows, .NET 10 SDK, WebView2 Runtime (ships with Windows 11), SQL Server Express LocalDB.
 
-Edit `cards.json`, `groups.json`, `tabs.json`, and `stages.json` there. This app reads that copy, not a second list and not the original cockpit folder. An open window picks up a JSON edit within a few seconds; no restart is needed.
+1. `git clone https://github.com/ccaspers2026/NonBallsAdvancedDirectorCockpitWV3.git`
+2. Create a LocalDB instance and database, or point the connection string at one you have:
+   `sqllocaldb create OmegaAlien_Local -s` then `sqlcmd -S "(localdb)\OmegaAlien_Local" -Q "CREATE DATABASE CFD"`
+   (or set env var `ConnectionStrings__Cfd` to any SQL Server connection string).
+3. `dotnet tool restore` (dotnet-ef, only needed to add migrations).
+4. `dotnet build AdvancedDirectorCockpitWV3.sln` and `dotnet test AdvancedDirectorCockpitWV3.sln` (tests create and drop temp databases on the Development LocalDB server).
+5. F5 `AdvancedDirectorCockpitWV3` (launch profile "(Development)").
 
-The window is the cockpit page. Dropping a card on a stage slot opens that card in a WebView2 laid over that same slot. The left slot is the left pane. The right slot is the right pane. There is no separate split to the right of the stage. Urls come from `www\data\cards.json`.
+On first start against an empty database the app runs EF `Migrate()` (schema) and then dbUp seeds (`Seeds\*.sql`: SchemaMeta, the board, the card icons). Nothing else is needed.
 
-## Run
-
-Start the built exe:
-
-`V:\_Data\CaspersCreations\Applications\Source\NonBalls\Advanced Director Cockpit WV2\bin\Debug\net10.0-windows\AdvancedDirectorCockpitWV2.exe`
-
-From this folder, `dotnet build` then run that exe. `dotnet run` also works.
-
-## Sign-in
-
-Logins stay in this app's own WebView2 data folder:
-
-`%LOCALAPPDATA%\AdvancedDirectorCockpitWV2\WebView2`
-
-That profile is not Chrome. The app does not read the Chrome profile, and it does not inject credentials or log cookies or passwords.
+See `README-WV3.md` for layout, configuration and the database rules.

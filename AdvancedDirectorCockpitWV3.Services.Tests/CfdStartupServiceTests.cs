@@ -1,6 +1,7 @@
-using AdvancedDirectorCockpitWV3.Data;
+﻿using AdvancedDirectorCockpitWV3.Data;
 using AdvancedDirectorCockpitWV3.Services;
 using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -35,8 +36,8 @@ public class CfdStartupServiceTests
         Assert.True(svc.Verify(), svc.Status);
         Assert.Contains("schema migrated; seeds applied", svc.Status);
         Assert.Contains($"db={db}", svc.Status);
-        Assert.Equal(1, Q(db, "SELECT COUNT(*) FROM dbo.__EFMigrationsHistory"));
-        Assert.Equal(1, Q(db, "SELECT COUNT(*) FROM dbo.SchemaVersions_Seed"));
+        Assert.Equal(2, Q(db, "SELECT COUNT(*) FROM dbo.__EFMigrationsHistory"));
+        Assert.Equal(3, Q(db, "SELECT COUNT(*) FROM dbo.SchemaVersions_Seed"));
     });
 
     [Fact] public void Second_start_on_populated_db_is_probe_only() => WithTempDb(db =>
@@ -45,7 +46,7 @@ public class CfdStartupServiceTests
         Assert.True(svc.Verify());
         Assert.True(svc.Verify(), svc.Status);
         Assert.DoesNotContain("migrated", svc.Status);
-        Assert.Equal(1, Q(db, "SELECT COUNT(*) FROM dbo.SchemaVersions_Seed"));
+        Assert.Equal(3, Q(db, "SELECT COUNT(*) FROM dbo.SchemaVersions_Seed"));
     });
 
     [Fact] public void Non_empty_db_never_migrates_or_seeds() => WithTempDb(db =>
@@ -73,6 +74,23 @@ public class CfdStartupServiceTests
         Assert.Same(a, sp.GetRequiredService<CfdStartupService>());
         Assert.Equal("CFD SQL: not checked", a.Status);
     }
+
+    // 2026-11-02 board in SQL: a CFD created before EF (five tables, no __EFMigrationsHistory) is baselined at
+    // InitialCreate, then AddBoard + seeds run. CFD tables and their rows are untouched.
+    [Fact] public void Existing_pre_ef_cfd_is_baselined_then_board_migrated_and_seeded() => WithTempDb(db =>
+    {
+        using (var ctx = CfdDbContext.Create(Cs(db))) ctx.Database.Migrate(); // full schema...
+        Q(db, "DROP TABLE dbo.BoardCard; DROP TABLE dbo.BoardGroup; DROP TABLE dbo.BoardTab; DROP TABLE dbo.BoardStageLayout; DROP TABLE dbo.BoardSetting; DROP TABLE dbo.BoardIcon; DROP TABLE dbo.__EFMigrationsHistory");
+        Q(db, "INSERT INTO dbo.SchemaMeta (Version, Notes) VALUES (7, N'pre-existing')"); // ...now looks like the old CFD
+        var svc = new CfdStartupService(Cs(db));
+        Assert.True(svc.Verify(), svc.Status);
+        Assert.Contains("baselined", svc.Status);
+        Assert.Equal(2, Q(db, "SELECT COUNT(*) FROM dbo.__EFMigrationsHistory"));
+        Assert.True((int)Q(db, "SELECT COUNT(*) FROM dbo.BoardCard")! > 0);
+        Assert.Equal(1, Q(db, "SELECT COUNT(*) FROM dbo.SchemaMeta"));
+        Assert.True(svc.Verify(), svc.Status); // second start: nothing pending
+        Assert.DoesNotContain("migrations applied", svc.Status);
+    });
 
     [Fact] public void Empty_connection_string_is_rejected()
         => Assert.ThrowsAny<ArgumentException>(() => new CfdStartupService(""));

@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -11,7 +11,7 @@ namespace AdvancedDirectorCockpitWV3.Windows;
 // Body: {"name":"logo.png","data":"<base64 of the file>"}. Accepts PNG, JPG/JPEG, ICO, WebP, GIF up to 1 MB
 // (SVG is refused: it can carry script and would be served from the cockpit's own origin). The bytes must
 // decode as an image (ToPng in MainWindow.Favicons.cs: largest frame, at most 64 px, re-encoded as PNG, so
-// nothing but pixels is kept). Saved in the Data folder's icons folder (<data>\icons, the folder
+// nothing but pixels is kept). Saved as a BoardIcon row in the CFD database (2026-11-02; was <data>\icons, the store
 // MainWindow.Favicons.cs uses for site icons; served as data/icons/... by ServeLocal) as upload_<safe-name>.png.
 // Site icons there are named <host-slug>.png (FavSlug: a-z, 0-9, dashes only, never '_'), so an upload name can
 // never equal a site-icon name. Never overwrites: an identical earlier UPLOAD (same SHA-256) is reused (site icons
@@ -28,7 +28,7 @@ public partial class MainWindow
         try
         {
             using var body = args.Request.Content;
-            r = IconStore.Save(body, _dataDir, ToPng);
+            r = IconStore.Save(body, CfdSql.Board, ToPng);
         }
         catch
         {
@@ -54,7 +54,7 @@ internal static class IconStore
     public static Result Fail(int status, string message) =>
         new(status, JsonSerializer.Serialize(new { message }));
 
-    public static Result Save(Stream? body, string dataDir, Func<byte[], byte[]?> toPng)
+    public static Result Save(Stream? body, AdvancedDirectorCockpitWV3.Data.Repositories.BoardRepository store, Func<byte[], byte[]?> toPng)
     {
         if (body == null) return Fail(400, "No file was sent.");
         string text;
@@ -86,36 +86,21 @@ internal static class IconStore
         var png = toPng(bytes);
         if (png == null || png.Length == 0) return Fail(415, "That image could not be read (at least 16 px is needed).");
 
-        var dir = SafeUnder(dataDir, DiskFolder);
-        if (dir == null) return Fail(500, "The icon folder is not available.");
+        // 2026-11-02 board in SQL: icons are BoardIcon rows (served as data/icons/<name>), not files.
         lock (Gate)
         {
-            Directory.CreateDirectory(dir);
             var hash = Convert.ToHexString(SHA256.HashData(png));
-            foreach (var existing in Directory.EnumerateFiles(dir, Prefix + "*.png"))
+            foreach (var (existing, content) in store.IconsWithPrefix(Prefix))
             {
-                var fn = Path.GetFileName(existing); // exact check: Windows wildcards also match 8.3 names and longer extensions
-                if (!fn.StartsWith(Prefix, StringComparison.OrdinalIgnoreCase) || !fn.EndsWith(".png", StringComparison.OrdinalIgnoreCase)) continue;
-                try
-                {
-                    var info = new FileInfo(existing);
-                    if (info.Length == png.Length && Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(existing))) == hash)
-                        return Ok(Path.GetFileName(existing), reused: true);
-                }
-                catch (IOException) { }
+                if (!existing.EndsWith(".png", StringComparison.OrdinalIgnoreCase)) continue;
+                if (content.Length == png.Length && Convert.ToHexString(SHA256.HashData(content)) == hash)
+                    return Ok(existing, reused: true);
             }
             var slug = Prefix + Slug(Path.GetFileNameWithoutExtension(name));
             for (var i = 1; i < 1000; i++)
             {
                 var file = slug + (i == 1 ? "" : "-" + i) + ".png";
-                var path = SafeUnder(dir, file);
-                if (path == null) break;
-                if (File.Exists(path)) continue;
-                var tmp = path + ".adc-tmp";
-                File.WriteAllBytes(tmp, png);
-                try { File.Move(tmp, path, overwrite: false); }
-                catch (IOException) { try { File.Delete(tmp); } catch { } continue; }
-                return Ok(file, reused: false);
+                if (store.TryAddIcon(file, png)) return Ok(file, reused: false);
             }
         }
         return Fail(500, "No free file name for that icon.");
