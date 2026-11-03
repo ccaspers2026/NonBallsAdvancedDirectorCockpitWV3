@@ -57,4 +57,12 @@
   <ItemGroup>
     <None Update="Vault\public_suffix_list.dat" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
+  <!-- 2026-11-03 board is SQL-only: delete board JSON left in old build/publish output (www\data\*.json from pre-SQL builds). -->
+  <Target Name="AdcPurgeStaleBoardJson" AfterTargets="Build;Publish">
+    <ItemGroup>
+      <AdcStaleBoardJson Include="$(OutDir)www\data\*.json*" />
+      <AdcStaleBoardJson Include="$(PublishDir)www\data\*.json*" Condition="'$(PublishDir)' != ''" />
+    </ItemGroup>
+    <Delete Files="@(AdcStaleBoardJson)" ContinueOnError="true" />
+  </Target>
 </Project>

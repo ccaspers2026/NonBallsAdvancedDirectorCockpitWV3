@@ -96,7 +96,7 @@ public partial class MainWindow : Window
         ShellView.CoreWebView2.WebResourceRequested += ServeLocal;
         StartFreshnessWatch();
         // A fresh ?v= tag on every start keeps WebView2 from serving a cached copy of the page.
-        // The page itself adds a fresh tag to its CSS and JS, and reads data\*.json with no-store.
+        // The page itself adds a fresh tag to its CSS and JS, and reads the board from adc-board/* (SQL) with no-store.
         // 2026-10-09 multi-window: per-window page storage for "New window" windows (MainWindow.Windows.cs).
         await ShellView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(WindowStorageScript());
         await ShellView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(AdcVersion.PageScript()); // host version for the page label
@@ -686,9 +686,14 @@ public partial class MainWindow : Window
         }
         var rel = Uri.UnescapeDataString(uri.AbsolutePath).TrimStart('/');
         if (rel.Length == 0) rel = "advanced-director-cockpit.html";
+        if (rel.StartsWith("adc-board/", StringComparison.OrdinalIgnoreCase))
+        {
+            ServeBoardDocument(args, rel.Substring(10), noStore); // 2026-11-03 cards/groups/tabs/stages from SQL only
+            return;
+        }
         if (rel.StartsWith("data/", StringComparison.OrdinalIgnoreCase))
         {
-            ServeBoardData(args, rel.Substring(5), noStore); // 2026-11-02 board + card icons come from SQL
+            ServeBoardData(args, rel.Substring(5), noStore); // card icons only (BoardIcon rows); never a file
             return;
         }
         var path = SafeChild(_www, rel);

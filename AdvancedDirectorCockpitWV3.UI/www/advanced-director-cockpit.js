@@ -1,5 +1,5 @@
 /* Advanced Director Cockpit
-   Fetches data/*.json, draws the tray and tabs, then binds drag, click, and collapse.
+   Fetches the board (adc-board/cards|groups|tabs|stages, served by the host from SQL), draws the tray and tabs, then binds drag, click, and collapse.
    Edits to cards, groups, tabs, and stages are written back to those JSON files.
 */
 /* Pane splits, detach, and floating sample panes. Launch Pad init runs after JSON renders. */
@@ -2442,9 +2442,9 @@
   var editing = false;
   var LOAD_NOTE = "Couldn't load the board from the CFD database (cards, groups, tabs, stages). Check that the database is reachable, then restart the app.";
 
-  /* Reads one JSON file. Rejects when the server or file:// blocks it. */
+  /* Reads one board document from the host (SQL). Rejects when the host cannot answer. */
   function fetchJson(name){
-    return fetch("data/" + name + ".json", { cache: "no-store" }).then(function(res){
+    return fetch("adc-board/" + name, { cache: "no-store" }).then(function(res){
       if(!res.ok) throw new Error(name);
       return res.json();
     });
@@ -2479,7 +2479,7 @@
   var SAVE_FILES = ["cards", "groups", "tabs", "stages"];
   var LIVE_OPTIONAL = { tools: true };
   /* ===== Live data files (2026-10-05) =====
-     1. Every load reads data/*.json with cache "no-store".
+     1. Every load reads adc-board/* (host, SQL) with cache "no-store".
      2. While the page is open, the files are re-read every few seconds. A change is drawn into the
         tray, rail, tabs, and layouts without a page reload. Open panes are kept. If a dialog, a drag,
         or a text box is in use, a toast says the files changed and the new data loads after that ends.
@@ -2496,9 +2496,9 @@
   var liveTimer = 0;
   var liveStats = { polls: 0, applied: 0, deferred: 0, saves: 0, blocked: 0, failed: 0 };
 
-  /* Reads one data file as exact text, never from the HTTP cache. */
+  /* Reads one board document (host, SQL) as exact text, never from the HTTP cache. */
   function fetchText(name){
-    return fetch("data/" + name + ".json", { cache: "no-store" }).then(function(res){
+    return fetch("adc-board/" + name, { cache: "no-store" }).then(function(res){
       if(!res.ok) throw new Error(name);
       return res.text();
     });
@@ -5947,7 +5947,7 @@
     return n.cards === 0 && n.kids === 0;
   }
   function fetchJson(name){
-    return fetch("data/" + name + ".json?ts=" + Date.now(), { cache: "no-store" }).then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; });
+    return fetch("adc-board/" + name + "?ts=" + Date.now(), { cache: "no-store" }).then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; });
   }
   function deleteGroup(group){
     var l = lp();
