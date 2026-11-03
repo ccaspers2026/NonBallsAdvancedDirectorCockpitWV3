@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Windows;
@@ -252,12 +252,8 @@ public partial class MainWindow
     {
         if (!_winKey.StartsWith("w", StringComparison.Ordinal)) return "window.__adcWindowKey='" + _winKey.Replace("'", "") + "';";
         var p = "adc-" + _winKey + ":";
-        return "(function(){window.__adcWindowKey='" + _winKey + "';var P='" + p + "',K={'lp-active-tab':1,'lp-tab-stages':1,'lp-stage-sizes':1,'adc-detached-tabs':1};"
-            + "var S=Storage.prototype,g=S.getItem,s=S.setItem,r=S.removeItem;"
-            + "function own(o,k){try{return o===window.localStorage&&K.hasOwnProperty(k);}catch(e){return false;}}"
-            + "S.getItem=function(k){if(own(this,k)){var v=g.call(this,P+k);if(v===null&&k==='lp-active-tab')v=g.call(this,k);return v;}return g.call(this,k);};"
-            + "S.setItem=function(k,v){return own(this,k)?s.call(this,P+k,v):s.call(this,k,v);};"
-            + "S.removeItem=function(k){return own(this,k)?r.call(this,P+k):r.call(this,k);};})();";
+        // 2026-11-02: per-window storage shim lives in www\adc-window-storage.js (moved verbatim; tokens filled here).
+        return File.ReadAllText(Path.Combine(_www, "adc-window-storage.js")).Replace("__ADC_WINKEY__", _winKey).Replace("__ADC_PREFIX__", p);
     }
 
     private void ApplyNewWindow() => OpenNewWindow();
