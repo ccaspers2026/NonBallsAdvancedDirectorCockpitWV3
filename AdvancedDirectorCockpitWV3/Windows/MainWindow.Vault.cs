@@ -7,7 +7,7 @@ using Microsoft.Web.WebView2.Core;
 namespace AdvancedDirectorCockpitWV3.Windows;
 
 // 2026-10-09: per-card password vault, WV3 side.
-// The vault (PIN check, AES-256-GCM, DPAPI) is the local frame proxy on 127.0.0.1:8791 (adc_vault.py).
+// The vault (PIN check, AES-256-GCM, DPAPI) runs in-process (Vault\AdcVault.cs, C# port of adc_vault.py).
 // When a pane finishes loading, the host tells the cockpit page the pane's real URL. The page asks the
 // vault for that card's login; the vault refuses unless the URL host matches the card (or its allowed hosts).
 // The page hands the result back here and the host injects it only if the pane is still on that origin.
@@ -200,10 +200,30 @@ public partial class MainWindow
         catch { }
     }
 
-    // Same-origin vault API for the WV3 page: https://adc-wv2.local/adc-vault/<action> is forwarded to the
-    // frame proxy on 127.0.0.1:8791 with Origin https://adc-wv2.local. Bodies are passed through, never logged.
-    private static readonly HttpClient VaultHttp = new(new HttpClientHandler { UseProxy = false }) { Timeout = TimeSpan.FromSeconds(AdcSettings.Vault.TimeoutSeconds) };
+    // 2026-11-02 self-contained vault: https://<VirtualHost>/adc-vault/<action> is answered in-process by AdcVault
+    // (Vault\AdcVault.cs, a C# port of adc_vault.py). No Python frame proxy, no port. Bodies are never logged.
+    private static readonly Lazy<AdcVault> Vault = new(CreateVault, isThreadSafe: true);
     private static int VaultMaxBody => AdcSettings.Vault.MaxBodyBytes; // appsettings Vault:*
+
+    internal static string ResolveVaultStoreDir()
+    {
+        var dir = AdcSettings.Vault.StoreDir;
+        if (string.IsNullOrWhiteSpace(dir))
+            dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AdvancedDirectorCockpitWV3", "vault");
+        return Environment.ExpandEnvironmentVariables(dir);
+    }
+
+    private static AdcVault CreateVault()
+    {
+        var www = Path.Combine(AppContext.BaseDirectory, "www");
+        var v = new AdcVault(
+            ResolveVaultStoreDir(),
+            () => new[] { Path.Combine(AdcSettings.Cockpit.DataDir ?? "", "cards.json"), Path.Combine(www, "data", "cards.json") },
+            Path.Combine(AppContext.BaseDirectory, "Vault", "public_suffix_list.dat"),
+            () => new[] { www, AdcSettings.Cockpit.DataDir ?? "" });
+        v.ImportIfMissing(AdcSettings.Vault.ImportFrom);
+        return v;
+    }
 
     private async void ServeVault(CoreWebView2WebResourceRequestedEventArgs args, Uri uri)
     {
@@ -240,16 +260,10 @@ public partial class MainWindow
                 args.Response = _environment.CreateWebResourceResponse(null, 413, "Too Large", headers);
                 return;
             }
-            using var req = new HttpRequestMessage(HttpMethod.Post, AdcSettings.Vault.ProxyBaseUrl.TrimEnd('/') + "/adc-vault/" + action);
-            req.Content = new ByteArrayContent(body.Length == 0 ? "{}"u8.ToArray() : body);
-            req.Content.Headers.TryAddWithoutValidation("Content-Type", "application/json");
-            req.Headers.TryAddWithoutValidation("Origin", "https://" + VirtualHost);
-            if (args.Request.Headers.Contains("X-ADC-Vault-Token"))
-                req.Headers.TryAddWithoutValidation("X-ADC-Vault-Token", args.Request.Headers.GetHeader("X-ADC-Vault-Token"));
-            using var resp = await VaultHttp.SendAsync(req);
-            var bytes = await resp.Content.ReadAsByteArrayAsync();
-            args.Response = _environment.CreateWebResourceResponse(
-                new MemoryStream(bytes), (int)resp.StatusCode, string.IsNullOrEmpty(resp.ReasonPhrase) ? "OK" : resp.ReasonPhrase, headers);
+            var token = args.Request.Headers.Contains("X-ADC-Vault-Token") ? args.Request.Headers.GetHeader("X-ADC-Vault-Token") : "";
+            // PBKDF2 (600k) runs off the UI thread.
+            var (status, bytes) = await Task.Run(() => Vault.Value.Handle(action, body, token));
+            args.Response = _environment.CreateWebResourceResponse(new MemoryStream(bytes), status, status == 200 ? "OK" : "Vault", headers);
         }
         catch
         {
@@ -257,7 +271,7 @@ public partial class MainWindow
             {
                 if (_environment != null)
                     args.Response = _environment.CreateWebResourceResponse(
-                        new MemoryStream("{\"error\":\"The vault service is not reachable (frame proxy on 127.0.0.1:8791).\"}"u8.ToArray()), 502, "Bad Gateway", headers);
+                        new MemoryStream("{\"error\":\"vault error\"}"u8.ToArray()), 500, "Vault", headers);
             }
             catch { }
         }

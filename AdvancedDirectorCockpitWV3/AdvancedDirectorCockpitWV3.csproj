@@ -53,4 +53,8 @@
     <ApplicationDefinition Include="App\App.xaml" />
   </ItemGroup>
 
+  <!-- 2026-11-02 in-process vault: public suffix list for own-site host matching (was beside adc_vault.py). -->
+  <ItemGroup>
+    <None Update="Vault\public_suffix_list.dat" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

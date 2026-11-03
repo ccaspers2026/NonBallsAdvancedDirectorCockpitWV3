@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using AdvancedDirectorCockpitWV3.Data;
 using AdvancedDirectorCockpitWV3.Services;
 using Microsoft.Extensions.Configuration;
@@ -34,8 +34,7 @@ public class AppSettingsTests
         Assert.EndsWith(@"Advanced Director Cockpit WV3\data", c.DataDir);
         Assert.EndsWith("AdvancedDirectorCockpitWV3.exe", c.PubExePath);
         var v = sp.GetRequiredService<IOptions<VaultOptions>>().Value;
-        Assert.Equal("http://127.0.0.1:8791", v.ProxyBaseUrl);
-        Assert.Equal(20, v.TimeoutSeconds);
+        Assert.Equal("", v.StoreDir);
         Assert.Equal(16384, v.MaxBodyBytes);
         Assert.NotNull(sp.GetRequiredService<CfdStartupService>());
     }

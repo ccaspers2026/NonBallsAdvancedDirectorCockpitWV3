@@ -1,6 +1,6 @@
 /* ADC per-card password vault (2026-10-09).
    Login button on every pane header, PIN unlock once per cockpit session, Lock in the title row.
-   The vault itself is the local frame proxy (127.0.0.1:8791, /adc-vault/*). Encryption and the PIN
+   The vault itself runs inside the WV3 host (in-process, /adc-vault/*). Encryption and the PIN
    check happen there. This page only holds a random session token in memory (never localStorage).
    Secrets are never logged, never put in a URL, and never stored by this page. */
 (function(){
@@ -10,7 +10,7 @@
 
   var WV2 = /^adc-wv2\.local$/i.test(location.hostname);
   /* Same origin in both cockpits: Caddy forwards /adc-vault/* (loopback only) in the browser cockpit;
-     the WV2 host forwards https://adc-wv2.local/adc-vault/* to 127.0.0.1:8791. No CORS needed. */
+     the WV3 host answers https://adc-wv2.local/adc-vault/* in-process. No CORS needed. */
   var BASE = '';
   var nativeFetch = window.fetch.bind(window);
   var host = WV2 && window.chrome && window.chrome.webview;
@@ -188,7 +188,7 @@
       cache: 'no-store', credentials: 'omit', mode: 'same-origin', redirect: 'error'
     }).then(function(r){
       return r.json().catch(function(){ return {}; }).then(function(j){ j = j || {}; j.__status = r.status; return j; });
-    }, function(){ return { __status: 0, error: 'The vault service is not reachable (frame proxy on 127.0.0.1:8791).' }; });
+    }, function(){ return { __status: 0, error: 'The vault did not answer (in-process vault in the cockpit host).' }; });
   }
 
   function refreshStatus(){

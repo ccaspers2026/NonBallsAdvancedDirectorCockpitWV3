@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -16,12 +16,14 @@ public sealed class CockpitOptions
     [Required] public string PubExePath { get; set; } = "";
 }
 
-// Section "Vault": the local frame proxy (adc_vault.py).
+// Section "Vault": in-process vault (Vault\AdcVault.cs). 2026-11-02: no Python frame proxy, no port.
 public sealed class VaultOptions
 {
     public const string Section = "Vault";
-    [Required, Url] public string ProxyBaseUrl { get; set; } = "http://127.0.0.1:8791";
-    [Range(1, 300)] public int TimeoutSeconds { get; set; } = 20;
+    // Folder for vault.dat (+ pending-hosts.json). Empty = %LOCALAPPDATA%\AdvancedDirectorCockpitWV3\vault (per Windows user).
+    public string StoreDir { get; set; } = "";
+    // Optional one-time import: copied (never moved) into StoreDir only when StoreDir has no vault.dat yet.
+    public string ImportFrom { get; set; } = "";
     [Range(1024, 1048576)] public int MaxBodyBytes { get; set; } = 16384;
 }
 
