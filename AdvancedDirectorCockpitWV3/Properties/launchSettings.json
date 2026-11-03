@@ -1,0 +1,16 @@
+{
+  "profiles": {
+    "AdvancedDirectorCockpitWV3 (Development)": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    },
+    "AdvancedDirectorCockpitWV3 (Production config)": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Production"
+      }
+    }
+  }
+}

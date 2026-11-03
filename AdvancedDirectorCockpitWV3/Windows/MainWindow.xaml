@@ -1,0 +1,27 @@
+﻿<Window x:Class="AdvancedDirectorCockpitWV3.Windows.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        Title="Advanced Director Cockpit WV3"
+        Height="960"
+        Width="1680"
+        MinHeight="640"
+        MinWidth="1100"
+        WindowStartupLocation="CenterScreen"
+        WindowState="Normal"
+        Background="#0f1218"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        FontFamily="Segoe UI"
+        FontSize="13">
+    <Grid>
+        <wv2:WebView2 x:Name="ShellView"/>
+        <Canvas x:Name="PaneHost"/>
+        <TextBlock x:Name="ShellError"
+                   Visibility="Collapsed"
+                   Margin="16"
+                   TextWrapping="Wrap"
+                   Foreground="#ffb4b4"
+                   FontSize="14"/>
+    </Grid>
+</Window>

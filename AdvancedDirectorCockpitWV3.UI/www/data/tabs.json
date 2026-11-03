@@ -1,0 +1,84 @@
+{
+  "_readme": {
+    "id": "data-view value. The view element id is view- plus this id.",
+    "label": "Visible tab text.",
+    "order": "Left-to-right order, low to high.",
+    "mark": "CSS class for the colored tab mark. The mark is a CSS shape, not an image.",
+    "extraClass": "Optional extra class. Launch Pad uses launch.",
+    "active": "True for the tab selected on a first visit, before saved-tab memory."
+  },
+  "tabs": [
+    {
+      "id": "launch",
+      "label": "Launch Pad",
+      "order": 1,
+      "mark": "mark-launch",
+      "extraClass": "launch",
+      "active": true
+    },
+    {
+      "id": "main",
+      "label": "Main / Conductor",
+      "order": 2,
+      "mark": "mark-conductor",
+      "extraClass": "",
+      "active": false
+    },
+    {
+      "id": "caddy",
+      "label": "Caddy \u00B7 CAD",
+      "order": 3,
+      "mark": "mark-caddy",
+      "extraClass": "",
+      "active": false
+    },
+    {
+      "id": "runway",
+      "label": "Runway \u00B7 P2M",
+      "order": 4,
+      "mark": "mark-runway",
+      "extraClass": "",
+      "active": false
+    },
+    {
+      "id": "sterling",
+      "label": "Sterling \u00B7 Finance",
+      "order": 5,
+      "mark": "mark-sterling",
+      "extraClass": "",
+      "active": false
+    },
+    {
+      "id": "phoenix",
+      "label": "Phoenix \u00B7 Data",
+      "order": 6,
+      "mark": "mark-phoenix",
+      "extraClass": "",
+      "active": false
+    },
+    {
+      "id": "devops",
+      "label": "DevOps",
+      "order": 7,
+      "mark": "mark-devops",
+      "extraClass": "",
+      "active": false
+    },
+    {
+      "id": "balls",
+      "label": "BallsLeader \u00B7 Balls",
+      "order": 8,
+      "mark": "mark-balls",
+      "extraClass": "",
+      "active": false
+    },
+    {
+      "id": "linear",
+      "label": "Full Linear",
+      "order": 9,
+      "mark": "mark-linear",
+      "extraClass": "",
+      "active": false
+    }
+  ]
+}

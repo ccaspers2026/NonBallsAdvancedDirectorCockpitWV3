@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- WV3 Services layer: logic between the Shell and Data. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>AdvancedDirectorCockpitWV3.Services</RootNamespace>
+    <AssemblyName>AdvancedDirectorCockpitWV3.Services</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AdvancedDirectorCockpitWV3.Data\AdvancedDirectorCockpitWV3.Data.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en" class="adc-wv2">
+<head>
+<!-- Page head. The title stays Advanced Director Cockpit (Beta). -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Advanced Director Cockpit</title>
+<!-- The CSS and JS carry a fresh ?v= tag on every load so a reload never runs an old cached copy. -->
+<script>window.__adcAssetTag = String(Date.now());document.write('<link rel="stylesheet" href="advanced-director-cockpit.css?v=' + window.__adcAssetTag + '">');</script>
+<noscript><link rel="stylesheet" href="advanced-director-cockpit.css"></noscript>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/adc-icon-32.png"><!-- 2026-10-09 adc-icon -->
+<link rel="icon" type="image/png" sizes="192x192" href="assets/icons/adc-icon-192.png">
+<link rel="apple-touch-icon" href="assets/icons/adc-icon-180.png">
+</head>
+<body>
+<div class="app">
+<!-- Top bar (v1.5.0, adc-setups): title, New window, vault pill. Edit/admin mode is retired. -->
+<header>
+  <h1>Advanced Director Cockpit</h1>
+  <span class="adc-head-tools">
+    <button type="button" class="lp-toolbar-toggle" id="lpToolbarToggle" title="Hide the tabs and layout toolbars" aria-controls="tabs lpToolbar" aria-expanded="true"><span class="tt-chev" aria-hidden="true">▴</span> <span class="tt-lbl">Hide toolbars</span></button>
+  </span>
+</header>
+
+<!-- Setup tabs (v1.5.0): drawn only from saved setups in data/tabs.json; no static or pinned tabs. -->
+<div class="tabs" id="tabs">
+  <span class="lp-tabs-end" id="lpTabsEnd" hidden></span>
+</div>
+<!-- ========== Persistent layout toolbar (applies to the ACTIVE tab's stage) ========== -->
+      <div class="lp-toolbar cockpit-toolbar" id="lpToolbar" aria-label="Stage layout toolbar (applies to the active tab)">
+        <span class="lbl">Layout<b id="lpToolbarTab" class="lp-toolbar-tab" hidden></b></span>
+        <div class="lp-layout-btns" id="lpLayoutBtns">
+          <button type="button" class="lp-layout-btn" data-layout="single" title="Single pane">
+            <span class="lp-mini single"><i></i></span> Single
+          </button>
+          <button type="button" class="lp-layout-btn active" data-layout="half" title="50 / 50">
+            <span class="lp-mini half"><i></i><i></i></span> 50/50
+          </button>
+          <button type="button" class="lp-layout-btn" data-layout="3367" title="33 / 67">
+            <span class="lp-mini t367"><i></i><i></i></span> 33/67
+          </button>
+          <button type="button" class="lp-layout-btn" data-layout="three" title="Three-up">
+            <span class="lp-mini three"><i></i><i></i><i></i></span> Three-up
+          </button>
+          <button type="button" class="lp-layout-btn" data-layout="l2" title="Left + 2 stack">
+            <span class="lp-mini lstack l2"><i></i><i></i><i></i></span> L+2
+          </button>
+          <button type="button" class="lp-layout-btn" data-layout="l3" title="Left + 3 stack">
+            <span class="lp-mini lstack l3"><i></i><i></i><i></i><i></i></span> L+3
+          </button>
+          <button type="button" class="lp-layout-btn" data-layout="l4" title="Left + 4 stack">
+            <span class="lp-mini lstack l4"><i></i><i></i><i></i><i></i><i></i></span> L+4
+          </button>
+        </div>
+        <button type="button" class="lp-ghost lp-action" id="lpAddPane" title="Add an empty pane">+ pane</button>
+        <span class="adc-save-state" id="adcSaveState" title="Setups save automatically (Ctrl+S saves now)"></span>
+        <div class="lp-toolbar-actions">
+        </div>
+      </div>
+
+
+<!-- ========== APP BODY: shared Launch Pad tray + main views ========== -->
+<div class="app-body" id="appBody">
+  <aside class="lp-tray" id="lpTray">
+
+      <div class="lp-tray-head">
+        <div class="lp-tray-titles">
+          <h2>Cards</h2>
+          <div class="sub">Drag cards into panes · right-click for more</div>
+        </div>
+        <button type="button" class="lp-tray-toggle" id="lpTrayCollapse" title="Collapse cards tray" aria-label="Collapse cards tray" aria-expanded="true"><span class="chev-collapse" aria-hidden="true"></span></button>
+      </div>
+      <div class="lp-tray-rail" aria-hidden="true">
+        <button type="button" class="rail-expand" id="lpTrayExpand" title="Expand cards tray" aria-label="Expand cards tray"><span class="chev-expand" aria-hidden="true"></span></button>
+        <span class="rail-mark" title="Cards" aria-hidden="true"></span>
+        <div class="rail-icos">
+          <!-- Icons come from each group whose show-in-rail checkbox is checked. -->
+        </div>
+      </div>
+      <div class="lp-tray-scroll">
+        <!-- Tray cards are drawn from data/cards.json and data/groups.json. -->
+      </div>
+      <div class="lp-tray-foot"></div>
+  </aside>
+  <div class="lp-splitter" id="lpTraySplitter" role="separator" aria-label="Resize cards tray" aria-orientation="vertical" tabindex="0"></div>
+
+  <div class="app-main" id="appMain">
+    <!-- ========== Work stage of the first setup (storage id launch) ========== -->
+    <div class="view active" id="view-launch">
+      <section class="lp-stage">
+      <div class="lp-stage-grid layout-half" id="lpStageGrid" aria-label="Work stage"></div>
+    </section>
+    </div>
+
+<!-- v1.5.0: the hardwired agent tab views (Main / Conductor, Caddy, Runway, Sterling, Phoenix, DevOps, BallsLeader, Full Linear) were removed. -->
+  </div>
+</div>
+<!-- Shared dialog and toast. -->
+<div class="lp-modal-backdrop" id="lpModal" aria-hidden="true">
+  <div class="lp-modal" role="dialog" aria-modal="true" aria-labelledby="lpModalTitle">
+    <h3 id="lpModalTitle">Dialog</h3>
+    <p class="hint" id="lpModalHint" hidden></p>
+    <div id="lpModalBody"></div>
+    <div class="lp-modal-actions" id="lpModalActions"></div>
+  </div>
+</div>
+<div class="lp-toast" id="lpToast" role="status"></div>
+
+<!-- Footer status line. -->
+</div>
+<!-- Behavior. Page data is fetched from data/*.json. There is no cards.js loader. -->
+<script>document.write('<script src="advanced-director-cockpit.js?v=' + (window.__adcAssetTag || String(Date.now())) + '"><\/script>');</script>
+
+<!-- 2026-10-09: per-card password vault (Login button, PIN, Lock). -->
+<script>document.write('<script src="adc-vault.js?v=' + (window.__adcAssetTag || String(Date.now())) + '"><\/script>');</script>
+</body>
+</html>

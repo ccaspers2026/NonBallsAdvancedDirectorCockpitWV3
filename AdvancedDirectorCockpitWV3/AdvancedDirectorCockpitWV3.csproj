@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>AdvancedDirectorCockpitWV3</RootNamespace>
+    <AssemblyName>AdvancedDirectorCockpitWV3</AssemblyName>
+    <ApplicationTitle>Advanced Director Cockpit WV3</ApplicationTitle>
+    <ApplicationIcon>..\AdvancedDirectorCockpitWV3.UI\www\assets\icons\adc-icon.ico</ApplicationIcon>
+    <!-- 2026-10-09 build version (adc-version). Bump VersionPrefix by hand for a release; the build stamp
+         (yyyyMMdd.HHmm, local time) is set automatically on every build. Optional release tag: -p:AdcRelease=r4.
+         Read at runtime from AssemblyInformationalVersion (AdcVersion.cs); keep PAGE_VERSION in the page js equal
+         to VersionPrefix, or the cockpit shows a page/host mismatch warning. -->
+    <VersionPrefix>3.0.0</VersionPrefix>
+    <AdcBuildStamp Condition="'$(AdcBuildStamp)' == ''">$([System.DateTime]::Now.ToString('yyyyMMdd.HHmm'))</AdcBuildStamp>
+    <Version>$(VersionPrefix)</Version>
+    <InformationalVersion>$(VersionPrefix)+$(AdcBuildStamp)</InformationalVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="AdvancedDirectorCockpitWV3.Shell.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyMetadata Include="AdcRelease" Value="$(AdcRelease)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.14" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4258.31" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AdvancedDirectorCockpitWV3.UI\AdvancedDirectorCockpitWV3.UI.csproj" />
+    <ProjectReference Include="..\AdvancedDirectorCockpitWV3.Services\AdvancedDirectorCockpitWV3.Services.csproj" />
+  </ItemGroup>
+
+  <!-- 2026-10-31 appsettings: copied to output (bin\...\ and publish\). Environment = DOTNET_ENVIRONMENT (launchSettings: Development; unset = Production). -->
+  <ItemGroup>
+    <Content Include="appsettings*.json" Exclude="appsettings*.bak*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
+  <!-- 2026-11-02 folder tidy: App.xaml lives in App\ (SDK only auto-detects root App.xaml). -->
+  <ItemGroup>
+    <Page Remove="App\App.xaml" />
+    <ApplicationDefinition Include="App\App.xaml" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,100 @@
+{
+  "_readme": {
+    "id": "Stable id. Cards use it as groupId.",
+    "title": "Summary label, kept exactly, including the middle dot U\u002B00B7.",
+    "order": "Sort order among siblings, low to high.",
+    "defaultCollapsed": "Seed only. false means the group starts open. A saved collapse state in this app\u0027s WebView2 profile wins.",
+    "parentId": "null means top level. A subgroup is a sibling in this array whose parentId is the parent group id. Subgroups are not nested objects and groups do not contain a children array or a cards array.",
+    "showInRail": "Optional. Missing means the collapsed-tray icon is shown. false hides it."
+  },
+  "groups": [
+    {
+      "id": "bills",
+      "parentId": null,
+      "title": "Bills",
+      "order": 1,
+      "defaultCollapsed": false,
+      "showInRail": true
+    },
+    {
+      "id": "banking",
+      "parentId": null,
+      "title": "Banking",
+      "order": 2,
+      "defaultCollapsed": false,
+      "showInRail": true
+    },
+    {
+      "id": "finances",
+      "parentId": null,
+      "title": "Finances",
+      "order": 3,
+      "defaultCollapsed": false,
+      "showInRail": true
+    },
+    {
+      "id": "sites-bbs",
+      "parentId": null,
+      "title": "Sites \u00B7 BBS",
+      "order": 4,
+      "defaultCollapsed": false,
+      "showInRail": true
+    },
+    {
+      "id": "sites-sbe",
+      "parentId": null,
+      "title": "Sites \u00B7 SBE",
+      "order": 5,
+      "defaultCollapsed": false,
+      "showInRail": true
+    },
+    {
+      "id": "sites-pathfinder",
+      "parentId": null,
+      "title": "Sites \u00B7 Pathfinder",
+      "order": 6,
+      "defaultCollapsed": false,
+      "showInRail": true
+    },
+    {
+      "id": "repos-github",
+      "parentId": null,
+      "title": "Repos (GitHub)",
+      "order": 7,
+      "defaultCollapsed": false,
+      "showInRail": true
+    },
+    {
+      "id": "repos-developer",
+      "parentId": "repos-github",
+      "title": "Developer",
+      "order": 1,
+      "defaultCollapsed": false,
+      "showInRail": true
+    },
+    {
+      "id": "repos-production",
+      "parentId": "repos-github",
+      "title": "Production",
+      "order": 2,
+      "defaultCollapsed": false,
+      "showInRail": true
+    },
+    {
+      "id": "trading",
+      "parentId": null,
+      "title": "Trading",
+      "order": 8,
+      "defaultCollapsed": false,
+      "showInRail": true
+    },
+    {
+      "id": "workstop",
+      "parentId": null,
+      "title": "Workshop",
+      "order": 0,
+      "defaultCollapsed": false,
+      "showInRail": true
+    }
+  ]
+}
