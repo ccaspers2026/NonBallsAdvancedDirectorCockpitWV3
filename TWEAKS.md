@@ -1,5 +1,8 @@
 # WV2 tweak list
 
+> 2026-11-02 (WV3): history below is kept as written. Superseded: the board is in SQL (CFD Board* tables), not www\data / Cockpit:DataDir JSON; the vault is in-process (AdcVault.cs), no adc_vault.py / frame proxy / 127.0.0.1:8791. See README-WV3.md.
+
+
 Running list for Advanced Director Cockpit WV2. Each rework round starts from this file, not from memory. Add a line when Christian asks for a change. Do not mark it done until that round is in the running app.
 
 (none yet)
