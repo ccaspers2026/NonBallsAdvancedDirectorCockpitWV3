@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using AdvancedDirectorCockpitWV3.Services;
 
 namespace AdvancedDirectorCockpitWV3.Configuration;
@@ -9,6 +9,14 @@ namespace AdvancedDirectorCockpitWV3.Configuration;
 internal static class CfdSql
 {
     internal static CfdStartupService? Service { get; set; }
+
+    // 2026-11-02 board in SQL: cards/groups/tabs/stages + card icons (Board* tables in the same CFD database).
+    private static AdvancedDirectorCockpitWV3.Data.Repositories.BoardRepository? _board;
+    internal static AdvancedDirectorCockpitWV3.Data.Repositories.BoardRepository Board
+    {
+        get => _board ?? throw new InvalidOperationException("Board repository not configured (ConnectionStrings:Cfd).");
+        set => _board = value;
+    }
 
     public static bool Connected => Service?.Connected ?? false;
     public static string Status => Service?.Status ?? "CFD SQL: not configured (ConnectionStrings:Cfd)";

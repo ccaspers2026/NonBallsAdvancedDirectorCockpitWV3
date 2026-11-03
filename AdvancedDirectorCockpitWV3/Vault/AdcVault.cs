@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Runtime.InteropServices;
@@ -22,7 +22,7 @@ internal sealed class AdcVault
 
     readonly object _lock = new();
     readonly string _dir, _path, _pending, _psl;
-    readonly Func<IEnumerable<string>> _cardFiles;
+    readonly Func<IEnumerable<JsonObject>> _cards; // 2026-11-02: card rows from SQL (BoardRepository.GetCards), not cards.json
     readonly Func<IEnumerable<string>> _servedRoots;
     byte[]? _key;
     JsonObject? _entries;
@@ -33,13 +33,13 @@ internal sealed class AdcVault
 
     public string VaultPath => _path;
 
-    public AdcVault(string storeDir, Func<IEnumerable<string>> cardFiles, string pslPath, Func<IEnumerable<string>>? servedRoots = null)
+    public AdcVault(string storeDir, Func<IEnumerable<JsonObject>> cards, string pslPath, Func<IEnumerable<string>>? servedRoots = null)
     {
         _dir = Path.GetFullPath(storeDir);
         _path = Path.Combine(_dir, "vault.dat");
         _pending = Path.Combine(_dir, "pending-hosts.json");
         _psl = pslPath;
-        _cardFiles = cardFiles;
+        _cards = cards;
         _servedRoots = servedRoots ?? (() => Array.Empty<string>());
         _reaper = new Timer(_ => { try { lock (_lock) Expire(); } catch { } }, null, 15000, 15000);
     }
@@ -255,18 +255,7 @@ internal sealed class AdcVault
 
     List<JsonObject> AllCards()
     {
-        var outp = new List<JsonObject>();
-        foreach (var path in _cardFiles())
-        {
-            try
-            {
-                var node = JsonNode.Parse(File.ReadAllText(path));
-                var rows = node is JsonObject o ? o["cards"] as JsonArray : node as JsonArray;
-                if (rows != null) outp.AddRange(rows.OfType<JsonObject>());
-            }
-            catch { }
-        }
-        return outp;
+        try { return _cards().ToList(); } catch { return new List<JsonObject>(); }
     }
 
     string? CardUrl(string id)
@@ -510,7 +499,7 @@ internal sealed class AdcVault
                     allowedHosts = Hosts(entry), autoSubmit = Bool(entry, "auto"), autoAdvance = Bool(entry, "adv"), savedFor = Str(entry, "ch"), sharedFromOtherCard = entryKey != cardId };
             case "save":
             {
-                var cardUrlNow = CardUrl(cardId) ?? throw new VaultErr(404, new { error = "Card not found in cards.json" });
+                var cardUrlNow = CardUrl(cardId) ?? throw new VaultErr(404, new { error = "Card not found on the board" });
                 var old = entry ?? new JsonObject();
                 if (entryKey != null && entryKey != cardId) _entries!.Remove(entryKey);
                 string Cap(string s, int n) => s.Length > n ? s[..n] : s;

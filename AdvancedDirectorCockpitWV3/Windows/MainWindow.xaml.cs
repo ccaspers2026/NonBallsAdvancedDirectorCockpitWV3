@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -19,8 +19,6 @@ public partial class MainWindow : Window
     private static string VirtualHost => AdcSettings.Cockpit.VirtualHost; // 2026-10-31 appsettings Cockpit:*
     private static int MaxSlots => AdcSettings.Cockpit.MaxSlots;
 
-    // Single data-folder setting. Every instance reads and saves cards/groups/tabs/stages here.
-    private static string ConfiguredDataDir => AdcSettings.Cockpit.DataDir; // appsettings Cockpit:DataDir
 
     private readonly Dictionary<int, SlotPane> _panes = new();
     private readonly Dictionary<int, string> _urls = new();
@@ -31,7 +29,6 @@ public partial class MainWindow : Window
     private readonly EmbeddedApps _embeds;
     private bool _popupOpen;
     private string _www = "";
-    private string _dataDir = "";
     private readonly string? _bootConfigId;
 
     public MainWindow() : this(null) { }
@@ -72,10 +69,10 @@ public partial class MainWindow : Window
         }
 
         _www = www;
-        _dataDir = ConfiguredDataDir;
-        if (!IsDataDir(_dataDir))
+        if (!CfdSql.Connected)
         {
-            ShowError(MissingDataMessage(_dataDir));
+            ShowError("The cockpit board lives in the CFD database (Board* tables) and the database is not available."
+                + Environment.NewLine + Environment.NewLine + CfdSql.Status);
             return;
         }
 
@@ -540,7 +537,7 @@ public partial class MainWindow : Window
     private async Task ApplyPaneIdentityAsync(Microsoft.Web.WebView2.Core.CoreWebView2 core, string url)
     {
         string? cards = null;
-        try { var p = Path.Combine(_dataDir, "cards.json"); if (File.Exists(p)) cards = File.ReadAllText(p, Encoding.UTF8); } catch { }
+        try { cards = CfdSql.Board.GetDocumentJson("cards"); } catch { }
         await BrowserIdentity.ApplyAsync(core, BrowserIdentity.ForUrl(cards, url), _environment?.BrowserVersionString ?? "");
     }
 
@@ -689,9 +686,12 @@ public partial class MainWindow : Window
         }
         var rel = Uri.UnescapeDataString(uri.AbsolutePath).TrimStart('/');
         if (rel.Length == 0) rel = "advanced-director-cockpit.html";
-        var path = rel.StartsWith("data/", StringComparison.OrdinalIgnoreCase)
-            ? SafeChild(_dataDir, rel.Substring(5))
-            : SafeChild(_www, rel);
+        if (rel.StartsWith("data/", StringComparison.OrdinalIgnoreCase))
+        {
+            ServeBoardData(args, rel.Substring(5), noStore); // 2026-11-02 board + card icons come from SQL
+            return;
+        }
+        var path = SafeChild(_www, rel);
         if (path == null || !File.Exists(path))
         {
             args.Response = _environment.CreateWebResourceResponse(null, 404, "Not Found", noStore);
@@ -738,10 +738,7 @@ public partial class MainWindow : Window
             }
             lock (_adcSaveLock)
             {
-                MergeWriteJsonArray(_dataDir, "cards.json", "cards", root);
-                MergeWriteJsonArray(_dataDir, "groups.json", "groups", root);
-                MergeWriteJsonArray(_dataDir, "tabs.json", "tabs", root);
-                MergeWriteStages(_dataDir, root);
+                CfdSql.Board.SavePage(root); // 2026-11-02 board in SQL (Board* tables), no JSON files
             }
             var ok = Encoding.UTF8.GetBytes("{\"ok\":true}");
             args.Response = _environment!.CreateWebResourceResponse(
@@ -751,75 +748,6 @@ public partial class MainWindow : Window
         {
             args.Response = _environment!.CreateWebResourceResponse(null, 500, "Save Failed", noStore);
         }
-    }
-
-    // Merge one top-level array field into a data JSON file (keeps _readme and other keys).
-    private static void MergeWriteJsonArray(string dataDir, string filename, string key, JsonElement root)
-    {
-        if (!root.TryGetProperty(key, out var arr) || arr.ValueKind != JsonValueKind.Array)
-            throw new InvalidOperationException(key);
-        foreach (var row in arr.EnumerateArray())
-            if (row.ValueKind != JsonValueKind.Object) throw new InvalidOperationException(key);
-        MergeWrite(dataDir, filename, key, arr);
-    }
-
-    private static void MergeWriteStages(string dataDir, JsonElement root)
-    {
-        if (!root.TryGetProperty("stages", out var stages) || stages.ValueKind != JsonValueKind.Object)
-            throw new InvalidOperationException("stages");
-        if (!stages.TryGetProperty("nativeSlot", out var native) || native.ValueKind != JsonValueKind.String)
-            throw new InvalidOperationException("stages");
-        if (!stages.TryGetProperty("layouts", out var layouts) || layouts.ValueKind != JsonValueKind.Array)
-            throw new InvalidOperationException("stages");
-        if (!stages.TryGetProperty("defaults", out var defaults) || defaults.ValueKind != JsonValueKind.Object)
-            throw new InvalidOperationException("stages");
-        foreach (var row in layouts.EnumerateArray())
-            if (row.ValueKind != JsonValueKind.Object) throw new InvalidOperationException("stages");
-        var path = SafeChild(dataDir, "stages.json") ?? throw new InvalidOperationException("stages path");
-        var original = File.ReadAllText(path, Encoding.UTF8);
-        using var existing = JsonDocument.Parse(string.IsNullOrWhiteSpace(original) ? "{}" : original);
-        var map = new Dictionary<string, JsonElement>();
-        foreach (var p in existing.RootElement.EnumerateObject())
-            map[p.Name] = p.Value.Clone();
-        map["nativeSlot"] = native.Clone();
-        map["layouts"] = layouts.Clone();
-        map["defaults"] = defaults.Clone();
-        WriteJsonFile(path, original, map);
-    }
-
-    private static void MergeWrite(string dataDir, string filename, string key, JsonElement value)
-    {
-        var path = SafeChild(dataDir, filename) ?? throw new InvalidOperationException(filename);
-        var original = File.ReadAllText(path, Encoding.UTF8);
-        using var existing = JsonDocument.Parse(string.IsNullOrWhiteSpace(original) ? "{}" : original);
-        var map = new Dictionary<string, JsonElement>();
-        foreach (var p in existing.RootElement.EnumerateObject())
-            map[p.Name] = p.Value.Clone();
-        map[key] = value.Clone();
-        WriteJsonFile(path, original, map);
-    }
-
-    private static void WriteJsonFile(string path, string original, Dictionary<string, JsonElement> map)
-    {
-        var newline = original.Contains("\r\n") ? "\r\n" : "\n";
-        var trailing = original.EndsWith("\n", StringComparison.Ordinal);
-        using var stream = new MemoryStream();
-        using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true }))
-        {
-            writer.WriteStartObject();
-            foreach (var kv in map)
-            {
-                writer.WritePropertyName(kv.Key);
-                kv.Value.WriteTo(writer);
-            }
-            writer.WriteEndObject();
-        }
-        var text = Encoding.UTF8.GetString(stream.ToArray());
-        if (newline == "\r\n") text = text.Replace("\n", "\r\n");
-        if (trailing && !text.EndsWith(newline, StringComparison.Ordinal)) text += newline;
-        var tmp = path + ".adc-tmp";
-        File.WriteAllText(tmp, text, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
-        File.Move(tmp, path, overwrite: true);
     }
 
     private static string? SafeChild(string root, string rel)
@@ -852,27 +780,11 @@ public partial class MainWindow : Window
         }
     }
 
-    private static bool IsDataDir(string dir)
-    {
-        return File.Exists(Path.Combine(dir, "cards.json"))
-            && File.Exists(Path.Combine(dir, "groups.json"))
-            && File.Exists(Path.Combine(dir, "tabs.json"))
-            && File.Exists(Path.Combine(dir, "stages.json"));
-    }
-
-    private static string MissingDataMessage(string dir)
-    {
-        return "Could not find the cockpit data files." + Environment.NewLine + Environment.NewLine
-            + "Expected cards.json, groups.json, tabs.json, and stages.json in:" + Environment.NewLine
-            + dir + Environment.NewLine + Environment.NewLine
-            + "ConfiguredDataDir is the single setting for this folder (canonical live data).";
-    }
-
 
     private static string MissingWwwMessage()
     {
         return "Could not find the copied cockpit page." + Environment.NewLine + Environment.NewLine
-            + "Expected www\\advanced-director-cockpit.html, .css, and .js next to AdvancedDirectorCockpitWV3.csproj (data JSON is resolved separately; see ConfiguredDataDir)."
+            + "Expected www\\advanced-director-cockpit.html, .css, and .js next to AdvancedDirectorCockpitWV3.csproj."
             + Environment.NewLine + Environment.NewLine
             + "Looked upward from " + AppContext.BaseDirectory;
     }

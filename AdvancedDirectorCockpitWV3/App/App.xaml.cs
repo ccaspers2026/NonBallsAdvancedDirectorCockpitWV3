@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.IO.Pipes;
 using System.Threading;
 using System.Windows;
@@ -74,6 +74,7 @@ public partial class App : Application
             AdcSettings.Cockpit = AppHost.Services.GetRequiredService<IOptions<CockpitOptions>>().Value;
             AdcSettings.Vault = AppHost.Services.GetRequiredService<IOptions<VaultOptions>>().Value;
             CfdSql.Service = AppHost.Services.GetRequiredService<CfdStartupService>();
+            CfdSql.Board = AppHost.Services.GetRequiredService<AdvancedDirectorCockpitWV3.Data.Repositories.BoardRepository>();
             return true;
         }
         catch (Exception ex)

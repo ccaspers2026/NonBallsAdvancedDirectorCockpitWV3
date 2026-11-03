@@ -11,8 +11,7 @@ public sealed class CockpitOptions
     public const string Section = "Cockpit";
     [Required] public string VirtualHost { get; set; } = "adc-wv2.local";
     [Range(1, 64)] public int MaxSlots { get; set; } = 16;
-    // Single data-folder setting. Every instance reads and saves cards/groups/tabs/stages here.
-    [Required] public string DataDir { get; set; } = "";
+    // 2026-11-02: no DataDir. The board (cards/groups/tabs/stages + icons) is in the CFD database (Board* tables).
     [Required] public string PubExePath { get; set; } = "";
 }
 

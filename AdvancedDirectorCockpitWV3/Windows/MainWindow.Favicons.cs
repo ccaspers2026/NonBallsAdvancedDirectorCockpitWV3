@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.IO;
 using System.Net.Http;
 using System.Text;
@@ -41,12 +41,11 @@ public partial class MainWindow
             return;
         }
         var deferral = args.GetDeferral();
-        var dataDir = _dataDir;
         var dispatcher = Dispatcher;
         _ = Task.Run(async () =>
         {
             string? rel = null;
-            try { rel = await FindOrFetchFaviconAsync(site, dataDir); } catch { rel = null; }
+            try { rel = await FindOrFetchFaviconAsync(site); } catch { rel = null; }
             await dispatcher.InvokeAsync(() =>
             {
                 try
@@ -67,29 +66,24 @@ public partial class MainWindow
 
     private static string FavSlug(string host) => Regex.Replace(host.ToLowerInvariant(), "[^a-z0-9]+", "-").Trim('-');
 
-    private static async Task<string?> FindOrFetchFaviconAsync(Uri site, string dataDir)
+    private static async Task<string?> FindOrFetchFaviconAsync(Uri site)
     {
         var host = site.Host;
         var name = FavSlug(host) + ".png";
-        var dir = Path.Combine(dataDir, "icons");
-        var file = Path.Combine(dir, name);
         var rel = "data/icons/" + name;
-        if (File.Exists(file)) return rel;
+        if (CfdSql.Board.IconExists(name)) return rel;
         if (FavFailed.ContainsKey(host)) return null;
         await FavGate.WaitAsync();
         try
         {
-            if (File.Exists(file)) return rel;
+            if (CfdSql.Board.IconExists(name)) return rel;
             var png = await FetchIconPngAsync(site);
             if (png == null)
             {
                 FavFailed[host] = true;
                 return null;
             }
-            Directory.CreateDirectory(dir);
-            var tmp = file + ".tmp";
-            await File.WriteAllBytesAsync(tmp, png);
-            File.Move(tmp, file, overwrite: true);
+            CfdSql.Board.TryAddIcon(name, png); // BoardIcon row, served as data/icons/<name>
             return rel;
         }
         finally { FavGate.Release(); }

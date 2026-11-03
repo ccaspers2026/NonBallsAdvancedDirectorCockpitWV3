@@ -218,9 +218,9 @@ public partial class MainWindow
         var www = Path.Combine(AppContext.BaseDirectory, "www");
         var v = new AdcVault(
             ResolveVaultStoreDir(),
-            () => new[] { Path.Combine(AdcSettings.Cockpit.DataDir ?? "", "cards.json"), Path.Combine(www, "data", "cards.json") },
+            () => CfdSql.Board.GetCards(), // 2026-11-02 board in SQL
             Path.Combine(AppContext.BaseDirectory, "Vault", "public_suffix_list.dat"),
-            () => new[] { www, AdcSettings.Cockpit.DataDir ?? "" });
+            () => new[] { www });
         v.ImportIfMissing(AdcSettings.Vault.ImportFrom);
         return v;
     }

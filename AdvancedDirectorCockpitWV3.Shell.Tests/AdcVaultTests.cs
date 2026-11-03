@@ -1,10 +1,10 @@
-using System.IO;
+﻿using System.IO;
 using System.Text;
 using System.Text.Json;
 
 namespace AdvancedDirectorCockpitWV3.Shell.Tests;
 
-// 2026-11-02: in-process vault (port of adc_vault.py). Temp store + temp cards.json; test PIN only.
+// 2026-11-02: in-process vault (port of adc_vault.py). Temp store + in-memory card rows (board is in SQL); test PIN only.
 public class AdcVaultTests : IDisposable
 {
     readonly string _dir = Path.Combine(Path.GetTempPath(), "adcvault-test-" + Guid.NewGuid().ToString("N"));
@@ -13,9 +13,8 @@ public class AdcVaultTests : IDisposable
     public AdcVaultTests()
     {
         Directory.CreateDirectory(_dir);
-        File.WriteAllText(Path.Combine(_dir, "cards.json"), "{\"cards\":[{\"id\":\"c1\",\"url\":\"https://www.example.com/login\"}]}");
         var psl = Path.Combine(AppContext.BaseDirectory, "Vault", "public_suffix_list.dat");
-        _v = new AdcVault(Path.Combine(_dir, "store"), () => new[] { Path.Combine(_dir, "cards.json") }, psl);
+        _v = new AdcVault(Path.Combine(_dir, "store"), () => new[] { new System.Text.Json.Nodes.JsonObject { ["id"] = "c1", ["url"] = "https://www.example.com/login" } }, psl);
     }
 
     public void Dispose() { try { Directory.Delete(_dir, true); } catch { } }
