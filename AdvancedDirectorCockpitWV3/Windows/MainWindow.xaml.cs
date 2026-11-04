@@ -179,6 +179,12 @@ public partial class MainWindow : Window
                 ApplyVaultFill(root);
             else if (type == "adc-new-window")
                 ApplyNewWindow(); // MainWindow.Windows.cs
+            else if (type == "adc-window-groups-list")
+                ApplyWindowGroupsList(); // MainWindow.WindowGroups.cs
+            else if (type == "adc-window-group-save")
+                ApplyWindowGroupSave(root);
+            else if (type == "adc-window-group-open")
+                ApplyWindowGroupOpen(root);
         }
         catch
         {
