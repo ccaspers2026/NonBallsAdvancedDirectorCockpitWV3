@@ -3,7 +3,8 @@
 Self-contained WPF + WebView2 cockpit (.NET 10). No Python, no local proxy ports, no data folder:
 
 - Board (cards, groups, tabs, stages, card icons) lives in SQL Server LocalDB, CFD database, `Board*` tables.
-- Vault (`/adc-vault/*`) runs in-process (`AdvancedDirectorCockpitWV3\Vault\AdcVault.cs`). Store: `%LOCALAPPDATA%\AdvancedDirectorCockpitWV3\vault` unless `Vault:StoreDir` is set.
+- Vault (`/adc-vault/*`) runs in-process (`AdvancedDirectorCockpitWV3\Vault\AdcVault.cs`). Store: `%LOCALAPPDATA%\AdvancedDirectorCockpitWV3\vault` unless `Vault:StoreDir` is set. `Vault:ImportFrom` is empty unless you set `Vault__ImportFrom` (one-time copy; relative paths resolve next to the app).
+- `Cockpit:PubExePath` is empty unless you set `Cockpit__PubExePath`. It does not launch an exe and does not require a V: drive. Relative paths resolve next to the running app. When unset, the freshness compare no-ops, except a process already running from a `publish` folder is treated as that published exe.
 - Page (HTML/JS/CSS/assets) is the `AdvancedDirectorCockpitWV3.UI\www` project, copied to the Shell output.
 
 ## Clone and run (another developer)

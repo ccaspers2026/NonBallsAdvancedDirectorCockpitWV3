@@ -25,6 +25,16 @@ public class AdcVaultTests : IDisposable
         return (s, JsonDocument.Parse(b).RootElement.Clone());
     }
 
+    [Fact]
+    public void ImportIfMissing_unset_or_missing_is_noop()
+    {
+        Assert.False(_v.ImportIfMissing(null));
+        Assert.False(_v.ImportIfMissing(""));
+        Assert.False(_v.ImportIfMissing("   "));
+        Assert.False(_v.ImportIfMissing(Path.Combine(_dir, "no-such-vault.dat")));
+        Assert.False(File.Exists(_v.VaultPath));
+    }
+
     [Fact] public void Status_ping_unlock_save_fill_roundtrip()
     {
         var (s, j) = Call("status");

@@ -221,7 +221,7 @@ public partial class MainWindow
             () => CfdSql.Board.GetCards(), // 2026-11-02 board in SQL
             Path.Combine(AppContext.BaseDirectory, "Vault", "public_suffix_list.dat"),
             () => new[] { www });
-        v.ImportIfMissing(AdcSettings.Vault.ImportFrom);
+        v.ImportIfMissing(MachineLocalPaths.ResolveConfigured(AdcSettings.Vault.ImportFrom, AppContext.BaseDirectory));
         return v;
     }
 
