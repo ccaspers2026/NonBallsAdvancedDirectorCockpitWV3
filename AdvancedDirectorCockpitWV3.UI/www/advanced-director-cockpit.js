@@ -7012,3 +7012,57 @@
   window.__adcTopCol = { toggle: toggle, set: setCollapsed, peek: setPeek, apply: apply, isCollapsed: isCollapsed };
   if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", function(){ setTimeout(start, 0); }); else setTimeout(start, 0);
 })();
+
+/* 2026-11-04 window groups slice 1 (adc-wingroups). WV2 only: a "Groups" dropdown in the title row lists named
+   cockpit window groups (host file window-groups.json). "+ Save current windows as group..." snapshots every open
+   cockpit window with its monitor + position; picking a group opens/moves those windows to their saved monitors. */
+(function(){
+  var host = window.chrome && window.chrome.webview;
+  if(!host || window.__adcSoloTab) return;
+  var SAVE = '__save__';
+  var sel = null;
+  function post(m){ try { host.postMessage(m); } catch(_){} }
+  function say(t){ try { if(typeof toast === 'function') toast(t); } catch(_){} }
+  function render(groups){
+    if(!sel) return;
+    sel.innerHTML = '';
+    var head = document.createElement('option'); head.value = ''; head.textContent = '\u25A6 Groups'; sel.appendChild(head);
+    (groups || []).forEach(function(g){
+      var o = document.createElement('option'); o.value = g.name; o.textContent = g.name + ' (' + g.count + ')'; sel.appendChild(o);
+    });
+    var s = document.createElement('option'); s.value = SAVE; s.textContent = '+ Save current windows as group\u2026'; sel.appendChild(s);
+    sel.value = '';
+  }
+  function addSelect(){
+    if(document.querySelector('.adc-wingroups')) return true;
+    var tools = document.querySelector('header .adc-head-tools') || document.querySelector('header');
+    if(!tools) return false;
+    sel = document.createElement('select');
+    sel.className = 'adc-wingroups';
+    sel.title = 'Window groups: open a saved set of cockpit windows on their monitors, or save the current ones';
+    sel.addEventListener('change', function(){
+      var v = sel.value; sel.value = '';
+      if(!v) return;
+      if(v === SAVE){
+        var name = window.prompt('Name for this window group (same name replaces it):', '');
+        if(name && name.trim()) post({ type: 'adc-window-group-save', name: name.trim() });
+        return;
+      }
+      post({ type: 'adc-window-group-open', name: v });
+    });
+    var nw = tools.querySelector('.adc-newwin');
+    if(nw && nw.nextSibling) tools.insertBefore(sel, nw.nextSibling); else tools.insertBefore(sel, tools.firstChild);
+    render([]);
+    post({ type: 'adc-window-groups-list' });
+    return true;
+  }
+  window.addEventListener('adc-host', function(e){
+    var d = e && e.detail;
+    if(!d || d.type !== 'adc-window-groups') return;
+    render(d.groups);
+    if(d.message) say(d.message);
+  });
+  if(!addSelect()){
+    var tries = 0, t = setInterval(function(){ if(addSelect() || ++tries > 40) clearInterval(t); }, 250);
+  }
+})();
