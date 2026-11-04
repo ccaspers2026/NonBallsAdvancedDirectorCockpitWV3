@@ -818,7 +818,10 @@ public partial class MainWindow : Window
         var beside = Path.Combine(AppContext.BaseDirectory, "www");
         if (IsWww(beside)) return beside;
         // 2026-10-09: a copy of the exe anywhere else (test build, moved exe) falls back to the Pub page.
-        var pubDir = new DirectoryInfo(Path.GetDirectoryName(AdvancedDirectorCockpitWV3.Windows.MainWindow.PubExePath) ?? "");
+        // 2026-11-04: unset PubExePath skips this. An empty path must not walk the process working directory.
+        var pubFolder = Path.GetDirectoryName(PubExePath);
+        if (string.IsNullOrEmpty(pubFolder)) return null;
+        var pubDir = new DirectoryInfo(pubFolder);
         while (pubDir != null)
         {
             var candidate = Path.Combine(pubDir.FullName, "www");

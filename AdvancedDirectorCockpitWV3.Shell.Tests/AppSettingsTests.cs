@@ -31,9 +31,10 @@ public class AppSettingsTests
         var c = sp.GetRequiredService<IOptions<CockpitOptions>>().Value;
         Assert.Equal("adc-wv2.local", c.VirtualHost);
         Assert.Equal(16, c.MaxSlots);
-        Assert.EndsWith("AdvancedDirectorCockpitWV3.exe", c.PubExePath);
+        Assert.Equal("", c.PubExePath);
         var v = sp.GetRequiredService<IOptions<VaultOptions>>().Value;
         Assert.Equal("", v.StoreDir);
+        Assert.Equal("", v.ImportFrom);
         Assert.Equal(16384, v.MaxBodyBytes);
         Assert.NotNull(sp.GetRequiredService<CfdStartupService>());
     }
@@ -43,6 +44,18 @@ public class AppSettingsTests
         var cfg = new ConfigurationBuilder().SetBasePath(CfdDbContextFactory.FindShellDir()).AddJsonFile("appsettings.json").Build();
         using var sp = Build(cfg);
         Assert.Throws<OptionsValidationException>(() => sp.GetRequiredService<IOptions<CfdOptions>>().Value);
+    }
+
+    [Fact]
+    public void Committed_appsettings_do_not_point_PubExe_or_vault_import_at_V()
+    {
+        var shell = CfdDbContextFactory.FindShellDir();
+        foreach (var name in new[] { "appsettings.json", "appsettings.Development.json", "appsettings.Production.json" })
+        {
+            var text = File.ReadAllText(Path.Combine(shell, name));
+            Assert.DoesNotContain("V:", text, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("V:/", text, StringComparison.OrdinalIgnoreCase);
+        }
     }
 
     [Fact] public void Shell_output_contains_appsettings_files()

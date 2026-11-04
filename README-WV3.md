@@ -3,7 +3,7 @@ Copied from WV2 on 2026-10-31. Open AdvancedDirectorCockpitWV3.sln, startup = Ad
 
 ## Data (2026-11-02: self-contained)
 - Board (cards, groups, tabs, stages, card icons): CFD database, tables BoardCard, BoardGroup, BoardTab, BoardStageLayout, BoardSetting, BoardIcon (EF migration AddBoard; seed Seeds\0002_BoardSeed.sql + 0003_BoardIcons.sql, generated from the last canonical data\*.json, deduplicated). 2026-11-03 SQL-only cutover: the page reads adc-board/cards, adc-board/groups, adc-board/tabs, adc-board/stages and data/icons/<name>; the Shell answers them only from SQL (MainWindow.BoardData.cs -> BoardRepository). The old data/*.json URLs answer 410 Gone (no file fallback), the build deletes any stale www\data\*.json left in bin/publish output, and BoardSqlOnlyTests guards it. The old Applications\Data\Advanced Director Cockpit WV3\data folder is not read or written by the app (kept only as a historical backup). On first F5 against an existing pre-EF CFD, startup baselines InitialCreate, applies AddBoard, then runs the dbUp board seeds. POST /adc-data saves to SQL in one transaction (rows deduplicated by id). There is no data folder and no Cockpit:DataDir.
-- Vault: in-process AdcVault; store %LOCALAPPDATA%\AdvancedDirectorCockpitWV3\vault (Vault:StoreDir to override). Vault:ImportFrom = optional one-time copy of an older vault.dat.
+- Vault: in-process AdcVault; store %LOCALAPPDATA%\AdvancedDirectorCockpitWV3\vault (Vault:StoreDir to override). Vault:ImportFrom is optional and empty in appsettings (one-time copy of an older vault.dat only when set; relative paths resolve next to the running app; env Vault__ImportFrom). Unset = no import.
 - LocalAppData profile: %LOCALAPPDATA%\AdvancedDirectorCockpitWV3
 
 ## Companions (external, not VS projects)
@@ -38,7 +38,8 @@ Files live in the Shell project (`AdvancedDirectorCockpitWV3\`) and are copied t
 | Properties\launchSettings.json | VS profiles | "(Development)" sets DOTNET_ENVIRONMENT=Development (default F5); "(Production config)" for testing Prod settings |
 
 - Options: CockpitOptions / VaultOptions (Shell, AdcSettings.cs), CfdOptions (Data, CfdConnection.cs); all `ValidateDataAnnotations().ValidateOnStart()`. A bad/missing value = "Configuration error" dialog at start.
-- Env override examples: `ConnectionStrings__Cfd`, `Vault__StoreDir`.
+- `Cockpit:PubExePath` and `Vault:ImportFrom` are optional (empty in committed appsettings). Empty PubExePath does not launch anything: the window-title freshness check no-ops, except when this process is already the publish output (its folder is named `publish`), which is labeled [Pub] with no config. A relative PubExePath or ImportFrom is resolved next to the running app (`AppContext.BaseDirectory`). Neither committed default points at a V: drive.
+- Env override examples: `ConnectionStrings__Cfd`, `Vault__StoreDir`, `Cockpit__PubExePath`, `Vault__ImportFrom`.
 - DI: `AddAdcCockpit(config)` (Shell), `AddCfdServices(config)` (Services) -> `AddCfdData(config)` (Data: CfdOptions, CfdDbContext, repositories).
 - Production note: the Pub exe runs as Production -> OmegaAlien_Prod LocalDB. On first Pub start the existing OmegaAlien_Prod CFD is baselined and gets the Board* tables + board seed (see CFD SQL above); an empty database is fully migrated + seeded.
 - Design time (`dotnet ef`): CfdDbContextFactory reads the Shell appsettings.json + appsettings.{DOTNET_ENVIRONMENT or Development}.json + env vars. No hardcoded fallback.

@@ -11,7 +11,10 @@ namespace AdvancedDirectorCockpitWV3.Windows;
 // Open-group windows, shared WebView2 profile, monitor placement, and freshness title watch.
 public partial class MainWindow
 {
-    private static string PubExePath => AdcSettings.Cockpit.PubExePath; // appsettings Cockpit:PubExePath
+    // appsettings Cockpit:PubExePath / env Cockpit__PubExePath (relative → next to this app).
+    // Unset no-ops, except a process already running from a publish folder is that exe.
+    private static string PubExePath => MachineLocalPaths.ResolvePubExe(
+        AdcSettings.Cockpit.PubExePath, AppContext.BaseDirectory, Environment.ProcessPath);
 
     private static readonly string[] AssetFileNames =
     {
