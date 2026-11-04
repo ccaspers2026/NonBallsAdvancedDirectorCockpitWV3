@@ -1,4 +1,4 @@
-# Advanced Director Cockpit WV3
+﻿# Advanced Director Cockpit WV3
 
 Self-contained WPF + WebView2 cockpit (.NET 10). No Python, no local proxy ports, no data folder:
 
@@ -8,7 +8,20 @@ Self-contained WPF + WebView2 cockpit (.NET 10). No Python, no local proxy ports
 
 ## Clone and run (another developer)
 
-Prerequisites: Windows, .NET 10 SDK, WebView2 Runtime (ships with Windows 11), SQL Server Express LocalDB.
+### Dependencies: NuGet only
+
+Standing rule: the solution carries everything it needs. Every library comes from NuGet via `PackageReference` and is restored by `dotnet restore` / the build. There are no checked-in DLLs, no `HintPath` or COM references, no Python, no npm, and no local proxy or helper services.
+
+NuGet packages in use: Microsoft.Web.WebView2 (WebView2 control), Microsoft.EntityFrameworkCore.SqlServer + .Design, Microsoft.Data.SqlClient, dbup-sqlserver, Microsoft.Extensions.Hosting / Configuration.Json / Configuration.EnvironmentVariables / Options.DataAnnotations, System.Security.Cryptography.Pkcs; tests: xunit, xunit.runner.visualstudio, Microsoft.NET.Test.Sdk, coverlet.collector.
+
+### Host requirements (not libraries, unavoidable)
+
+These are the operating system and runtimes the app runs on. They cannot come from NuGet:
+
+- Windows 10/11 x64 (WPF is Windows-only).
+- .NET 10 SDK, to build and run (Visual Studio 2026 includes it).
+- Microsoft Edge WebView2 Runtime, which is built into Windows 11. The NuGet package supplies the control, and the runtime supplies the browser engine.
+- SQL Server Express LocalDB, the database engine (Visual Studio's "Data storage and processing" workload installs it). Alternatively, set `ConnectionStrings__Cfd` to point at any SQL Server.
 
 1. `git clone https://github.com/ccaspers2026/NonBallsAdvancedDirectorCockpitWV3.git`
 2. Create a LocalDB instance and database, or point the connection string at one you have:
