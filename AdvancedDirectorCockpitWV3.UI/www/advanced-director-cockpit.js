@@ -7015,7 +7015,8 @@
 
 /* 2026-11-04 window groups slice 1 (adc-wingroups). WV2 only: a "Groups" dropdown in the title row lists named
    cockpit window groups (host file window-groups.json). "+ Save current windows as group..." snapshots every open
-   cockpit window with its monitor + position; picking a group opens/moves those windows to their saved monitors. */
+   cockpit window with its monitor + position; picking a group opens those windows on the current virtual
+   desktop at their saved monitors and hides cockpit windows that are not in the group. */
 (function(){
   var host = window.chrome && window.chrome.webview;
   if(!host || window.__adcSoloTab) return;
@@ -7039,7 +7040,7 @@
     if(!tools) return false;
     sel = document.createElement('select');
     sel.className = 'adc-wingroups';
-    sel.title = 'Window groups: open a saved set of cockpit windows on their monitors, or save the current ones';
+    sel.title = 'Window groups: open a saved set of cockpit windows on this virtual desktop, or save the current ones';
     sel.addEventListener('change', function(){
       var v = sel.value; sel.value = '';
       if(!v) return;
