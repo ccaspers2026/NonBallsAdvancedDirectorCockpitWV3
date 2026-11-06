@@ -6,6 +6,7 @@ namespace AdvancedDirectorCockpitWV3.Windows;
 // 2026-11-04 window groups (slice 1). A named group is a snapshot of the cockpit windows that were open
 // when it was saved: each window's key, monitor device name and Win32 normal rect (L/T/R/B) + maximized.
 // Stored in %LOCALAPPDATA%\AdvancedDirectorCockpitWV3\window-groups.json (separate from windows.json).
+// The file does not store a virtual desktop; opening a group uses the desktop the user is viewing.
 internal sealed class WindowGroupWindow
 {
     public string Key { get; set; } = "";

@@ -23,6 +23,8 @@ public partial class MainWindow
         public string? Solo;
         public Windows.MainWindow? From;
         public string? Title;
+        public Guid? CurrentDesktop; // group open: move onto this desktop once the HWND exists
+        public bool GroupPlacement;  // group open: place the saved rect, then maximize (don't SW_SHOWMAXIMIZED a stuck window)
     }
 
     private string _winKey = "main";
@@ -99,7 +101,11 @@ public partial class MainWindow
         {
             w.WindowStartupLocation = WindowStartupLocation.CenterScreen;
         }
-        w.SourceInitialized += (_, _) => w.RestorePlacement();
+        w.SourceInitialized += (_, _) =>
+        {
+            w.MoveOntoDesktop(spec.CurrentDesktop); // no-op unless a group open asked for the current desktop
+            w.RestorePlacement(spec.GroupPlacement);
+        };
         w.Closing += (_, _) => w.SavePlacement(closing: true);
         w.LocationChanged += (_, _) => w.SavePlacementSoon();
         w.SizeChanged += (_, _) => w.SavePlacementSoon();
@@ -147,11 +153,12 @@ public partial class MainWindow
 
     // ---- placement (Win32 window placement keeps per-monitor DPI right) ----
     private System.Windows.Threading.DispatcherTimer? _placeTimer;
+    private bool _placementSuspended; // group dismiss: a late timer must not mark a closed window open again
 
     private void SavePlacementSoon()
     {
-        if (!IsLoaded) return;
-        _placeTimer ??= new System.Windows.Threading.DispatcherTimer(TimeSpan.FromSeconds(1), System.Windows.Threading.DispatcherPriority.Background, (_, _) => { _placeTimer!.Stop(); SavePlacement(closing: false); }, Dispatcher);
+        if (_placementSuspended || !IsLoaded) return;
+        _placeTimer ??= new System.Windows.Threading.DispatcherTimer(TimeSpan.FromSeconds(1), System.Windows.Threading.DispatcherPriority.Background, (_, _) => { _placeTimer!.Stop(); if (!_placementSuspended) SavePlacement(closing: false); }, Dispatcher);
         _placeTimer.Stop();
         _placeTimer.Start();
     }
@@ -193,14 +200,19 @@ public partial class MainWindow
         }
     }
 
-    private void RestorePlacement()
+    private void RestorePlacement(bool placeThenMaximize = false)
     {
         try
         {
             if (!LoadWindowStates().TryGetValue(_winKey, out var st)) return;
             var rect = new WRect { L = st.L, T = st.T, R = st.R, B = st.B };
-            if (rect.R - rect.L < 200 || rect.B - rect.T < 150) return;
+            if (rect.R - rect.L < 200 || rect.B - rect.T < 150)
+            {
+                Log("window " + _winKey + ": SetWindowPlacement skipped (rect too small)");
+                return;
+            }
             var hwnd = new WindowInteropHelper(this).Handle;
+            if (hwnd == IntPtr.Zero) { Log("window " + _winKey + ": SetWindowPlacement skipped (no hwnd)"); return; }
             // the monitor it was on must still exist; otherwise the window opens on the primary monitor
             if (MonitorFromRect(ref rect, 0 /* MONITOR_DEFAULTTONULL */) == IntPtr.Zero)
             {
@@ -210,15 +222,30 @@ public partial class MainWindow
                 Height = Math.Min(Math.Max(MinHeight, (rect.B - rect.T)), wa.Height);
                 Left = wa.Left + (wa.Width - Width) / 2;
                 Top = wa.Top + (wa.Height - Height) / 2;
-                Log("window " + _winKey + ": saved monitor " + st.Monitor + " is gone; opened on the primary monitor");
+                Log("window " + _winKey + ": SetWindowPlacement skipped; saved monitor " + st.Monitor + " is gone; opened on the primary monitor");
                 return;
             }
-            var wp = new WINDOWPLACEMENT { length = Marshal.SizeOf<WINDOWPLACEMENT>(), showCmd = st.Max ? 3 : 1, rcNormalPosition = rect, ptMinPosition = new WPt { X = -1, Y = -1 }, ptMaxPosition = new WPt { X = -1, Y = -1 } };
-            SetWindowPlacement(hwnd, ref wp);
+            // 2026-11-06: SW_SHOWMAXIMIZED on a window that is already maximized only stores rcNormalPosition.
+            // Group open passes placeThenMaximize so the saved rect is applied while the window is normal.
+            var stuck = WindowState == WindowState.Maximized || WindowState == WindowState.Minimized;
+            if (stuck) WindowState = WindowState.Normal;
+            foreach (var showCmd in WindowGroupApply.PlanPlacement(st.Max, placeThenMaximize || stuck).ShowCmds)
+            {
+                var wp = new WINDOWPLACEMENT { length = Marshal.SizeOf<WINDOWPLACEMENT>(), showCmd = showCmd, rcNormalPosition = rect, ptMinPosition = new WPt { X = -1, Y = -1 }, ptMaxPosition = new WPt { X = -1, Y = -1 } };
+                var ok = SetWindowPlacement(hwnd, ref wp);
+                var err = ok ? 0 : Marshal.GetLastWin32Error();
+                Log("window " + _winKey + ": SetWindowPlacement " + (ok ? "ok" : "failed win32=" + err) + " showCmd=" + showCmd + " rect=" + rect.L + "," + rect.T + "-" + rect.R + "," + rect.B + " saved=" + st.Monitor);
+                // Group open can run from SourceInitialized, before Loaded. Startup (placeThenMaximize false) stays on the Win32 show command.
+                if (ok && showCmd == WindowGroupApply.ShowMaximized && WindowState != WindowState.Maximized && (IsLoaded || placeThenMaximize))
+                {
+                    try { WindowState = WindowState.Maximized; }
+                    catch (Exception ex) { Log("window " + _winKey + ": maximize failed: " + ex.Message); }
+                }
+            }
         }
-        catch
+        catch (Exception ex)
         {
-            // Default placement.
+            Log("window " + _winKey + ": restore placement failed: " + ex.Message);
         }
     }
 
@@ -284,7 +311,7 @@ public partial class MainWindow
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct MONITORINFOEX { public int cbSize; public WRect rcMonitor, rcWork; public uint dwFlags; [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string szDevice; }
     [DllImport("user32.dll")] private static extern bool GetWindowPlacement(IntPtr hwnd, ref WINDOWPLACEMENT wp);
-    [DllImport("user32.dll")] private static extern bool SetWindowPlacement(IntPtr hwnd, ref WINDOWPLACEMENT wp);
+    [DllImport("user32.dll", SetLastError = true)] private static extern bool SetWindowPlacement(IntPtr hwnd, ref WINDOWPLACEMENT wp);
     [DllImport("user32.dll")] private static extern IntPtr MonitorFromRect(ref WRect r, uint flags);
     [DllImport("user32.dll", EntryPoint = "MonitorFromWindow")] private static extern IntPtr MonitorFromWindow2(IntPtr hwnd, uint flags);
     [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "GetMonitorInfoW")] private static extern bool GetMonitorInfoEx(IntPtr m, ref MONITORINFOEX info);
